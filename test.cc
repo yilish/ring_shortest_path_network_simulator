@@ -318,7 +318,7 @@ int main(int argc, char* argv[]){
     auto subNetMask = "255.255.255.0";
 
     vector<Ipv4InterfaceContainer> interfaceContainers;
-    for (int i = 0; i < edges.size(); i++) {
+    for (int i = 0; i < int(edges.size()); i++) {
         string ipAddress = "10.1." + to_string(i % 256) + "." + to_string(i / 256);
         ipv4.SetBase(ipAddress.c_str(), subNetMask);
 
@@ -390,7 +390,7 @@ int main(int argc, char* argv[]){
     UdpEchoServerHelper echoServer (port);
 
     ApplicationContainer serverApps = echoServer.Install(nodes.Get(path[1]));
-    for (int i = 2; i < path.size(); i++) {
+    for (int i = 2; i < int(path.size()); i++) {
         serverApps.Add(echoServer.Install( nodes.Get(path[i])));
     }
 
@@ -778,7 +778,7 @@ void MultiRingNet::linkNodes(int& nodeNum, list<pair<int, int>>& bridgeNodes, li
 		bridgeNodes.erase(anotherNode);
 		bridgeNodes.pop_front();
 	}
-	if (rings.size() < ringNum)
+	if (int(rings.size()) < ringNum)
 	{
 		createRing(nodeNum, bridgeNodes, sharedNodes, 0);
 	}
@@ -836,7 +836,7 @@ void MultiRingNet::addEdge(int a, int b)
 
 bool MultiRingNet::isConnected()
 {
-	if (graph.size() == 0)
+	if (int(graph.size()) == 0)
 	{
 		return false;
 	}
@@ -870,7 +870,7 @@ void MultiRingNet::preprocessing()
 	{
 		vector<pair<int, int>> ringConnectedNodes;
 		for (int j = 0; j < ringNodeNum; ++j)
-			if (graph[rings[i][j]].size() > 2)
+			if (int(graph[rings[i][j]].size()) > 2)
 			{
 				if (find(connectedNodes.begin(), connectedNodes.end(), rings[i][j]) == connectedNodes.end())
 				{
@@ -926,12 +926,12 @@ void MultiRingNet::recoveringNodes(int start, int end)
 
 void MultiRingNet::addRecoveringNode(int node)
 {
-	for (int i = 0; i < rings.size(); ++i)
+	for (int i = 0; i < int(rings.size()); ++i)
 	{
 		int pos = find(rings[i].begin(), rings[i].end(), node) - rings[i].begin();
-		if (pos != rings[i].size())
+		if (pos != int(rings[i].size()))
 		{
-			for (int j = 0; j < rings[i].size(); ++j)
+			for (int j = 0; j < int(rings[i].size()); ++j)
 			{
 				if (find(connectedNodes.begin(), connectedNodes.end(), rings[i][j]) != connectedNodes.end())
 				{
@@ -951,7 +951,7 @@ vector<pair<int, int>> MultiRingNet::getOrignalPath(int start, int end)
 	{
 		connectedGraph[node] = vector<pair<int, int>>();
 	}
-	for (int i = 0; i < connectedEdges.size(); ++i)
+	for (int i = 0; i < int(connectedEdges.size()); ++i)
 	{
 		if (connectedGraph.count(connectedEdges[i][0]) && connectedGraph.count(connectedEdges[i][1]))
 		{
@@ -977,7 +977,7 @@ vector<pair<int, int>> MultiRingNet::getOrignalPath(int start, int end)
 	while (curNode != end)
 	{
 		int selectNode = -1, minDis = INT_MAX;
-		for (int i = 0; i < connectedNodes.size(); ++i)
+		for (int i = 0; i < int(connectedNodes.size()); ++i)
 		{
 			if (disMap[connectedNodes[i]].first != -1 && disMap[connectedNodes[i]].first < minDis)
 			{
@@ -1011,7 +1011,7 @@ vector<pair<int, int>> MultiRingNet::getOrignalPath(int start, int end)
 vector<int> MultiRingNet::recoverPath(vector<pair<int, int>> orignalPath)
 {
 	vector<int> path;
-	for (int i = 1; i < orignalPath.size(); ++i)
+	for (int i = 1; i < int(orignalPath.size()); ++i)
 	{
 		int r = orignalPath[i].second;
 		if (r == -1)
@@ -1075,11 +1075,11 @@ vector<int> MultiRingNet::getPath(int start, int end)
 	int nodeNum = connectedNodes.size(), edgeNum = connectedEdges.size();
 	recoveringNodes(start, end);
 	vector<int> path = recoverPath(getOrignalPath(start, end));
-	while (connectedNodes.size() > nodeNum)
+	while (int(connectedNodes.size()) > nodeNum)
 	{
 		connectedNodes.pop_back();
 	}
-	while (connectedEdges.size() > edgeNum)
+	while (int(connectedEdges.size()) > edgeNum)
 	{
 		connectedEdges.pop_back();
 	}
@@ -1093,7 +1093,7 @@ void MultiRingNet::print()
 	cost = clock() - cost;
 	cout << cost << endl << endl;
 	cout << ans.size() << endl << endl;
-	for (int i = 0; i < ans.size(); ++i)
+	for (int i = 0; i < int(ans.size()); ++i)
 	{
 		cout << ans[i] << endl;
 	}
