@@ -36,6 +36,11 @@ public:
 	void recoveringNodes(int start, int end);
 	void addConnectedEdge(int a, int b, int dis, int ring);
 	void print();
+    
+    
+    void showGraphContent();
+    vector<vector<int> > getGraphNeighbourTable();
+
 private:
 	vector<vector<int> > graph;
 	vector<vector<int> > rings;
@@ -59,13 +64,13 @@ int main(int argc, char* argv[]){
     test.createGraph();
     
     test.preprocessing();
-	test.print();   
+	// test.print();   
+    // test.showGraphContent();
     //命令行对象
 
     CommandLine cmd;   
 
     cmd.Parse(argc,argv);
-
 
 
     if(verbose){
@@ -92,21 +97,41 @@ int main(int argc, char* argv[]){
 
     nodes.Create(numNodes);
 
+    // 生成一个NodeContainer;
+    vector<vector<int> > neighbour;
+    neighbour.push_back({1});
+    neighbour.push_back({2, 3});
+    neighbour.push_back({4});
+    neighbour.push_back({4});
+    neighbour.push_back({5});
+    //  = {{1}, {2, 3}, {4}, {4}, {5}};
+    
+    vector<NodeContainer> nodeContainers;
+    // Todo: add a map
+    map<vector<int>, int> edge2NodeIdx;
+    for (int i = 0; i < neighbour.size(); i++) {
+        for (int j = 0; j < neighbour[i].size(); j++) {
+            nodeContainers.push_back(NodeContainer(nodes.Get(i), nodes.Get(neighbour[i][j])));
+            edge2NodeIdx[{i, neighbour[i][j]}] = nodeContainers.size() - 1;
+            cout << i << ' ' << neighbour[i][j] << '\n';
+        }
+    }
+
     
 
     //建立拓扑的各边节点组合，n1n2n3n4构成环
 
-    NodeContainer n0n1 = NodeContainer(nodes.Get(0),nodes.Get(1));
+    // NodeContainer n0n1 = NodeContainer(nodes.Get(0),nodes.Get(1));
 
-    NodeContainer n1n2 = NodeContainer(nodes.Get(1),nodes.Get(2));
+    // NodeContainer n1n2 = NodeContainer(nodes.Get(1),nodes.Get(2));
 
-    NodeContainer n1n3 = NodeContainer(nodes.Get(1),nodes.Get(3));
+    // NodeContainer n1n3 = NodeContainer(nodes.Get(1),nodes.Get(3));
 
-    NodeContainer n2n4 = NodeContainer(nodes.Get(2),nodes.Get(4));
+    // NodeContainer n2n4 = NodeContainer(nodes.Get(2),nodes.Get(4));
 
-    NodeContainer n3n4 = NodeContainer(nodes.Get(3),nodes.Get(4));
+    // NodeContainer n3n4 = NodeContainer(nodes.Get(3),nodes.Get(4));
 
-    NodeContainer n4n5 = NodeContainer(nodes.Get(4),nodes.Get(5));
+    // NodeContainer n4n5 = NodeContainer(nodes.Get(4),nodes.Get(5));
 
 
 
@@ -133,103 +158,135 @@ int main(int argc, char* argv[]){
     //为链路安装点到点连接
 
     NetDeviceContainer nets;
+    
+    vector<NetDeviceContainer> edges;
+    for (auto nodeContainer : nodeContainers) {
+        edges.push_back(p2p.Install(nodeContainer));
+    }
+    // NetDeviceContainer d0d1 = p2p.Install(n0n1);
 
-    NetDeviceContainer d0d1 = p2p.Install(n0n1);
+    // NetDeviceContainer d1d2 = p2p.Install(n1n2);
 
-    NetDeviceContainer d1d2 = p2p.Install(n1n2);
+    // NetDeviceContainer d1d3 = p2p.Install(n1n3);
 
-    NetDeviceContainer d1d3 = p2p.Install(n1n3);
+    // NetDeviceContainer d2d4 = p2p.Install(n2n4);
 
-    NetDeviceContainer d2d4 = p2p.Install(n2n4);
+    // NetDeviceContainer d3d4 = p2p.Install(n3n4);
 
-    NetDeviceContainer d3d4 = p2p.Install(n3n4);
-
-    NetDeviceContainer d4d5 = p2p.Install(n4n5);    
+    // NetDeviceContainer d4d5 = p2p.Install(n4n5);    
 
 
 
     //为链路设置ip地址
 
     Ipv4AddressHelper ipv4;
+    auto subNetMask = "255.255.255.0";
+    vector<Ipv4InterfaceContainer> interfaceContainers;
+    for (int i = 0; i < edges.size(); i++) {
+        string ipAddress = "10.1." + to_string(i) + ".0";
+        ipv4.SetBase(ipAddress.c_str(), subNetMask);
+        auto interfaceContainer = ipv4.Assign(edges[i]);
+        interfaceContainers.push_back(interfaceContainer);
+    }
+    // string add = "10.1.1.0";
+    // ipv4.SetBase( "10.1.1.0", "255.255.255.0");
 
-    ipv4.SetBase("10.1.1.0","255.255.255.0");
+    // Ipv4InterfaceContainer i0i1 = ipv4.Assign(d0d1);
 
-    Ipv4InterfaceContainer i0i1 = ipv4.Assign(d0d1);
+    // ipv4.SetBase("10.1.2.0","255.255.255.0");
 
-    ipv4.SetBase("10.1.2.0","255.255.255.0");
+    // Ipv4InterfaceContainer i1i2 = ipv4.Assign(d1d2);
 
-    Ipv4InterfaceContainer i1i2 = ipv4.Assign(d1d2);
+    // ipv4.SetBase("10.1.3.0","255.255.255.0");
 
-    ipv4.SetBase("10.1.3.0","255.255.255.0");
+    // Ipv4InterfaceContainer i1i3 = ipv4.Assign(d1d3);
 
-    Ipv4InterfaceContainer i1i3 = ipv4.Assign(d1d3);
+    // ipv4.SetBase("10.1.4.0","255.255.255.0");
 
-    ipv4.SetBase("10.1.4.0","255.255.255.0");
+    // Ipv4InterfaceContainer i2i4 = ipv4.Assign(d2d4);
 
-    Ipv4InterfaceContainer i2i4 = ipv4.Assign(d2d4);
+    // ipv4.SetBase("10.1.5.0","255.255.255.0");
 
-    ipv4.SetBase("10.1.5.0","255.255.255.0");
+    // Ipv4InterfaceContainer i3i4 = ipv4.Assign(d3d4);
 
-    Ipv4InterfaceContainer i3i4 = ipv4.Assign(d3d4);
+    // ipv4.SetBase("10.1.6.0","255.255.255.0");
 
-    ipv4.SetBase("10.1.6.0","255.255.255.0");
-
-    Ipv4InterfaceContainer i4i5 = ipv4.Assign(d4d5);
+    // Ipv4InterfaceContainer i4i5 = ipv4.Assign(d4d5);
 
  
 
     
-
+    vector<int> path = {0, 1, 2, 4, 5};
     //配置应用层
     uint16_t port = 9;
     UdpEchoServerHelper echoServer (port);
+    ApplicationContainer serverApps = echoServer.Install(nodes.Get(path[1]));
+    for (int i = 2; i < path.size(); i++) {
+        serverApps.Add(echoServer.Install( nodes.Get(path[i])) );
+    }
+    serverApps.Start(Seconds(1.0));
+    serverApps.Stop(Seconds(path.size()));
+    // ApplicationContainer serverApps = echoServer.Install(nodes.Get(1));
+    // serverApps.Add(echoServer.Install(nodes.Get(2)));
+    // serverApps.Add(echoServer.Install(nodes.Get(4)));
+    // serverApps.Add(echoServer.Install(nodes.Get(5)));
+    // serverApps.Start (Seconds (1.0));
+    // serverApps.Stop (Seconds (10.0));
+    vector<UdpEchoClientHelper> echoClients;
+    for (int i = 0; i < path.size() - 1; i++) {
+        auto nodeIdx = edge2NodeIdx[{path[i], path[i + 1]}];
+        auto echoClient = UdpEchoClientHelper( interfaceContainers[nodeIdx].GetAddress(1), port );
+        echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+        echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+        echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+        ApplicationContainer clientApp = echoClient.Install (nodes.Get (path[i]));
+        clientApp.Start(Seconds(i + 2));
+        clientApp.Stop(Seconds(i + 3));
 
-    ApplicationContainer serverApps = echoServer.Install(nodes.Get(1));
-    serverApps.Add(echoServer.Install(nodes.Get(2)));
-    serverApps.Add(echoServer.Install(nodes.Get(4)));
-    serverApps.Add(echoServer.Install(nodes.Get(5)));
-    serverApps.Start (Seconds (1.0));
-    serverApps.Stop (Seconds (10.0));
+        echoClients.push_back(echoClient);
+        
+    }
 
-    //n0->n1
-    UdpEchoClientHelper echoClient1 (i0i1.GetAddress(1), port);
-    echoClient1.SetAttribute ("MaxPackets", UintegerValue (1));
-    echoClient1.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-    echoClient1.SetAttribute ("PacketSize", UintegerValue (1024));
 
-    ApplicationContainer clientApps1 = echoClient1.Install (nodes.Get (0));
-    clientApps1.Start (Seconds (2.0));
-    clientApps1.Stop (Seconds (3.0));
+    // //n0->n1
+    // UdpEchoClientHelper echoClient1 (i0i1.GetAddress(1), port);
+    // echoClient1.SetAttribute ("MaxPackets", UintegerValue (1));
+    // echoClient1.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    // echoClient1.SetAttribute ("PacketSize", UintegerValue (1024));
 
-    //n1->n2
-    UdpEchoClientHelper echoClient2 (i1i2.GetAddress(1), port);
-    echoClient2.SetAttribute ("MaxPackets", UintegerValue (1));
-    echoClient2.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-    echoClient2.SetAttribute ("PacketSize", UintegerValue (1024));
+    // ApplicationContainer clientApps1 = echoClient1.Install (nodes.Get (0));
+    // clientApps1.Start (Seconds (2.0));
+    // clientApps1.Stop (Seconds (3.0));
 
-    ApplicationContainer clientApps2 = echoClient2.Install (nodes.Get (1));
-    clientApps2.Start (Seconds (3.0));
-    clientApps2.Stop (Seconds (4.0));
+    // //n1->n2
+    // UdpEchoClientHelper echoClient2 (i1i2.GetAddress(1), port);
+    // echoClient2.SetAttribute ("MaxPackets", UintegerValue (1));
+    // echoClient2.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    // echoClient2.SetAttribute ("PacketSize", UintegerValue (1024));
 
-    //n2->n4
-    UdpEchoClientHelper echoClient3 (i2i4.GetAddress(1), port);
-    echoClient3.SetAttribute ("MaxPackets", UintegerValue (1));
-    echoClient3.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-    echoClient3.SetAttribute ("PacketSize", UintegerValue (1024));
+    // ApplicationContainer clientApps2 = echoClient2.Install (nodes.Get (1));
+    // clientApps2.Start (Seconds (3.0));
+    // clientApps2.Stop (Seconds (4.0));
 
-    ApplicationContainer clientApps3 = echoClient3.Install (nodes.Get (2));
-    clientApps3.Start (Seconds (4.0));
-    clientApps3.Stop (Seconds (5.0));
+    // //n2->n4
+    // UdpEchoClientHelper echoClient3 (i2i4.GetAddress(1), port);
+    // echoClient3.SetAttribute ("MaxPackets", UintegerValue (1));
+    // echoClient3.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    // echoClient3.SetAttribute ("PacketSize", UintegerValue (1024));
 
-    //n4->n5
-    UdpEchoClientHelper echoClient4 (i4i5.GetAddress(1), port);
-    echoClient4.SetAttribute ("MaxPackets", UintegerValue (1));
-    echoClient4.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-    echoClient4.SetAttribute ("PacketSize", UintegerValue (1024));
+    // ApplicationContainer clientApps3 = echoClient3.Install (nodes.Get (2));
+    // clientApps3.Start (Seconds (4.0));
+    // clientApps3.Stop (Seconds (5.0));
 
-    ApplicationContainer clientApps4 = echoClient4.Install (nodes.Get (4));
-    clientApps4.Start (Seconds (5.0));
-    clientApps4.Stop (Seconds (6.0));
+    // //n4->n5
+    // UdpEchoClientHelper echoClient4 (i4i5.GetAddress(1), port);
+    // echoClient4.SetAttribute ("MaxPackets", UintegerValue (1));
+    // echoClient4.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+    // echoClient4.SetAttribute ("PacketSize", UintegerValue (1024));
+
+    // ApplicationContainer clientApps4 = echoClient4.Install (nodes.Get (4)); // 起点节点
+    // clientApps4.Start (Seconds (5.0));
+    // clientApps4.Stop (Seconds (6.0));
     /* uint16_t port = 50000;
 
     ApplicationContainer sinkApp;
@@ -523,3 +580,13 @@ void MultiRingNet::print()
 	cout << connectedNodes.size() << endl;
 	cout << connectedEdges.size() << endl;
 }
+
+void MultiRingNet::showGraphContent() {
+    for (auto vec : this->graph) {
+        cout << vec.size() << ' ';
+    }
+}
+
+vector<vector<int> > MultiRingNet::getGraphNeighbourTable() {
+    return this->graph;
+} 
