@@ -26,27 +26,26 @@ public:
 	vector<int> dijkstra();
 	void createNet();
 	void createGraph();
-	void createRing(int& nodeNum, list<pair<int, int> >& bridgeNodes, list<pair<int, int> >& sharedNodes, int bridgeNum = -1);
-	void linkNodes(int& nodeNum, list<pair<int, int> >& bridgeNodes, list<pair<int, int> >& sharedNodes);
+	void createRing(int& nodeNum, list<pair<int, int>>& bridgeNodes, list<pair<int, int>>& sharedNodes, int bridgeNum = -1);
+	void linkNodes(int& nodeNum, list<pair<int, int>>& bridgeNodes, list<pair<int, int>>& sharedNodes);
 	void addEdges();
 	void addEdge(int a, int b);
 	bool isConnected();
 	void visit(int k, vector<bool>& isVisited);
 	void preprocessing();
 	void recoveringNodes(int start, int end);
+	void addRecoveringNode(int node);
 	void addConnectedEdge(int a, int b, int dis, int ring);
+	vector<pair<int, int>> getOrignalPath(int start, int end);
+	vector<int> recoverPath(vector<pair<int, int>> orignalPath);
+	vector<int> getPath(int start, int end);
 	void print();
-    
-    
-    void showGraphContent();
-    vector<vector<int> > getGraphNeighbourTable();
-
 private:
-	vector<vector<int> > graph;
-	vector<vector<int> > rings;
-	vector<pair<int, int> > bridges;
+	vector<vector<int>> graph;
+	vector<vector<int>> rings;
+	vector<pair<int, int>> bridges;
 	vector<int> connectedNodes;
-	vector<vector<int> > connectedEdges;
+	vector<vector<int>> connectedEdges;
 	int ringNum;
 	int ringNodeNum;
 	int connectedNodeNum;
@@ -69,7 +68,7 @@ int main(int argc, char* argv[]){
     //命令行对象
 
     CommandLine cmd;   
-
+    cmd.Usage("Hello world!");
     cmd.Parse(argc,argv);
 
 
@@ -222,7 +221,7 @@ int main(int argc, char* argv[]){
     UdpEchoServerHelper echoServer (port);
     ApplicationContainer serverApps = echoServer.Install(nodes.Get(path[1]));
     for (int i = 2; i < path.size(); i++) {
-        serverApps.Add(echoServer.Install( nodes.Get(path[i])) );
+        serverApps.Add(echoServer.Install( nodes.Get(path[i])));
     }
     serverApps.Start(Seconds(1.0));
     serverApps.Stop(Seconds(path.size()));
@@ -244,7 +243,6 @@ int main(int argc, char* argv[]){
         clientApp.Stop(Seconds(i + 3));
 
         echoClients.push_back(echoClient);
-        
     }
 
 
@@ -384,7 +382,6 @@ int main(int argc, char* argv[]){
 }   
 
 
-
 void MultiRingNet::createGraph()
 {
 	while (!isConnected())
@@ -393,16 +390,17 @@ void MultiRingNet::createGraph()
 		int nodeNum = 0;
 		rings.clear();
 		bridges.clear();
-		list<pair<int, int> > bridgeNodes, sharedNodes;
+		list<pair<int, int>> bridgeNodes, sharedNodes;
 		for (int i = 1; i < ringNum; ++i)
 			createRing(nodeNum, bridgeNodes, sharedNodes);
 		linkNodes(nodeNum, bridgeNodes, sharedNodes);
-		graph = vector<vector<int> >(nodeNum);
+		graph = vector<vector<int>>(nodeNum);
 		addEdges();
 	}
+	preprocessing();
 }
 
-void MultiRingNet::createRing(int& nodeNum, list<pair<int, int> >& bridgeNodes, list<pair<int, int> >& sharedNodes, int bridgeNum)
+void MultiRingNet::createRing(int& nodeNum, list<pair<int, int>>& bridgeNodes, list<pair<int, int>>& sharedNodes, int bridgeNum)
 {
 	int curRing = rings.size();
 	rings.push_back(vector<int>(ringNodeNum, 0));
@@ -417,19 +415,20 @@ void MultiRingNet::createRing(int& nodeNum, list<pair<int, int> >& bridgeNodes, 
 	for (int i = 0; i < ringNodeNum; ++i)
 	{
 		if (rings.back()[i]) {
-			if ((bridgeNum > 0 && bridgeNum--) || (bridgeNum < 0 && rand() < isBridge)){
+			if ((bridgeNum > 0 && bridgeNum--) || (bridgeNum < 0 && rand() < isBridge)) {
 				bridgeNodes.push_back(pair<int, int>(curRing, i));
             }
-            else {
+			else
+			{
 				sharedNodes.push_back(pair<int, int>(curRing, i));
 				continue;
 			}
+		    rings.back()[i] = nodeNum++;
         }
-		rings.back()[i] = nodeNum++;
 	}
 }
 
-void MultiRingNet::linkNodes(int& nodeNum, list<pair<int, int> >& bridgeNodes, list<pair<int, int> >& sharedNodes)
+void MultiRingNet::linkNodes(int& nodeNum, list<pair<int, int>>& bridgeNodes, list<pair<int, int>>& sharedNodes)
 {
 	while (bridgeNodes.size())
 	{
@@ -439,7 +438,7 @@ void MultiRingNet::linkNodes(int& nodeNum, list<pair<int, int> >& bridgeNodes, l
 			linkNodes(nodeNum, bridgeNodes, sharedNodes);
 			break;
 		}
-		list<pair<int, int> >::iterator anotherNode = bridgeNodes.begin();
+		list<pair<int, int>>::iterator anotherNode = bridgeNodes.begin();
 		advance(anotherNode, rand() % bridgeNodes.size());
 		while (bridgeNodes.front().first == anotherNode->first)
 		{
@@ -461,7 +460,7 @@ void MultiRingNet::linkNodes(int& nodeNum, list<pair<int, int> >& bridgeNodes, l
 			sharedNodes.clear();
 			break;
 		}
-		list<pair<int, int> >::iterator anotherNode = sharedNodes.begin();
+		list<pair<int, int>>::iterator anotherNode = sharedNodes.begin();
 		advance(anotherNode, rand() % sharedNodes.size());
 		while (sharedNodes.front().first == anotherNode->first)
 		{
@@ -518,11 +517,12 @@ void MultiRingNet::preprocessing()
 {
 	for (int i = 0; i < ringNum; ++i)
 	{
-		vector<pair<int, int> > ringConnectedNodes = vector<pair<int, int> >();
+		vector<pair<int, int>> ringConnectedNodes;
 		for (int j = 0; j < ringNodeNum; ++j)
-			if (graph[rings[i][j]].size() > 2 && find(connectedNodes.begin(), connectedNodes.end(), rings[i][j]) == connectedNodes.end())
+			if (graph[rings[i][j]].size() > 2)
 			{
-				connectedNodes.push_back(rings[i][j]);
+				if(find(connectedNodes.begin(), connectedNodes.end(), rings[i][j]) == connectedNodes.end())
+					connectedNodes.push_back(rings[i][j]);
 				for (auto node : ringConnectedNodes)
 					addConnectedEdge(rings[i][j], node.second, j - node.first, i);
 				ringConnectedNodes.push_back(pair<int, int>(j, rings[i][j]));
@@ -530,19 +530,6 @@ void MultiRingNet::preprocessing()
 	}
 	for (auto bridge : bridges)
 		addConnectedEdge(bridge.first, bridge.second, 1, -1);
-}
-
-void MultiRingNet::recoveringNodes(int start, int end)
-{
-	if (find(connectedNodes.begin(), connectedNodes.end(), start) == connectedNodes.end())
-	{
-		connectedNodes.push_back(start);
-		for(auto ring : rings)
-			if (find(ring.begin(), ring.end(), start) != ring.end())
-			{
-				break;
-			}
-	}
 }
 
 void MultiRingNet::addConnectedEdge(int a, int b, int dis, int ring)
@@ -560,33 +547,152 @@ void MultiRingNet::addConnectedEdge(int a, int b, int dis, int ring)
 			}
 			return;
 		}
-	vector<int> edge;
-	edge.push_back(a);
-	edge.push_back(b);
-	edge.push_back(dis);
-	edge.push_back(ring);
-	// for (auto item: { a, b, dis, ring }) {
-	// 	edge.push_back(item);
-	// }
-
+	vector<int> edge = { a, b, dis, ring };
 	connectedEdges.push_back(edge);
+}
+
+void MultiRingNet::recoveringNodes(int start, int end)
+{
+	if (find(connectedNodes.begin(), connectedNodes.end(), start) == connectedNodes.end())
+		addRecoveringNode(start);
+	if (find(connectedNodes.begin(), connectedNodes.end(), end) == connectedNodes.end())
+		addRecoveringNode(end);
+}
+
+void MultiRingNet::addRecoveringNode(int node)
+{
+	for (int i = 0; i < rings.size(); ++i)
+	{
+		int pos = find(rings[i].begin(), rings[i].end(), node) - rings[i].begin();
+		if (pos != rings[i].size())
+		{
+			for (int j = 0; j < rings[i].size(); ++j)
+				if (find(connectedNodes.begin(), connectedNodes.end(), rings[i][j]) != connectedNodes.end())
+					addConnectedEdge(node, rings[i][j], abs(j - pos), i);
+			break;
+		}
+	}
+	connectedNodes.push_back(node);
+}
+
+vector<pair<int, int>> MultiRingNet::getOrignalPath(int start, int end)
+{
+	map<int, vector<pair<int, int>>> connectedGraph;
+	for (auto node : connectedNodes)
+		connectedGraph[node] = vector<pair<int, int>>();
+	for (int i = 0; i < connectedEdges.size(); ++i)
+		if (connectedGraph.count(connectedEdges[i][0]) && connectedGraph.count(connectedEdges[i][1]))
+		{
+			connectedGraph[connectedEdges[i][0]].push_back(pair<int, int>(connectedEdges[i][1], i));
+			connectedGraph[connectedEdges[i][1]].push_back(pair<int, int>(connectedEdges[i][0], i));
+		}
+	map<int, pair<int, int>> disMap;
+	map<int, int> nearest;
+	for (auto node : connectedNodes)
+	{
+		disMap[node] = pair<int, int>(INT_MAX, -1);
+		nearest[node] = -1;
+	}
+	disMap[start].first = -1;
+	for (auto& edge : connectedGraph[start])
+	{
+		disMap[edge.first].first = connectedEdges[edge.second][2];
+		disMap[edge.first].second = connectedEdges[edge.second][3];
+		nearest[edge.first] = start;
+	}
+	int curNode = start;
+	while (curNode != end)
+	{
+		int selectNode = -1, minDis = INT_MAX;
+		for(int i = 0; i < connectedNodes.size(); ++i)
+			if (disMap[connectedNodes[i]].first != -1 && disMap[connectedNodes[i]].first < minDis)
+			{
+				minDis = disMap[connectedNodes[i]].first;
+				selectNode = connectedNodes[i];
+			}
+		for (auto& edge : connectedGraph[selectNode])
+			if(disMap[edge.first].first > connectedEdges[edge.second][2] + disMap[selectNode].first)
+			{
+				disMap[edge.first].first = connectedEdges[edge.second][2] + disMap[selectNode].first;
+				disMap[edge.first].second = connectedEdges[edge.second][3];
+				nearest[edge.first] = selectNode;
+			}
+		disMap[selectNode].first = -1;
+		curNode = selectNode;
+	}
+	vector<pair<int, int>> orignalPath;
+	while (curNode != start)
+	{
+		orignalPath.push_back(pair<int, int>(curNode, disMap[curNode].second));
+		curNode = nearest[curNode];
+	}
+	orignalPath.push_back(pair<int, int>(curNode, -1));
+	reverse(orignalPath.begin(), orignalPath.end());
+	return orignalPath;
+}
+
+vector<int> MultiRingNet::recoverPath(vector<pair<int, int>> orignalPath)
+{
+	vector<int> path;
+	for (int i = 1; i < orignalPath.size(); ++i)
+	{
+		int r = orignalPath[i].second;
+		if (r == -1)
+		{
+			path.push_back(orignalPath[i - 1].first);
+			continue;
+		}
+		int start = find(rings[r].begin(), rings[r].end(), orignalPath[i - 1].first) - rings[r].begin();
+		int end = find(rings[r].begin(), rings[r].end(), orignalPath[i].first) - rings[r].begin();
+		if (start < end)
+		{
+			int len = end - start;
+			if (len < ringNodeNum - len)
+				for (int i = start; i < end; ++i)
+					path.push_back(rings[r][i]);
+			else
+			{
+				for (int i = start; i >= 0; --i)
+					path.push_back(rings[r][i]);
+				for (int i = ringNodeNum - 1; i > end; --i)
+					path.push_back(rings[r][i]);
+			}
+		}
+		else
+		{
+			int len = start - end;
+			if (len < ringNodeNum - len)
+				for (int i = start; i > end; --i)
+					path.push_back(rings[r][i]);
+			else
+			{
+				for (int i = start; i < ringNodeNum; ++i)
+					path.push_back(rings[r][i]);
+				for (int i = 0; i < end; ++i)
+					path.push_back(rings[r][i]);
+			}
+		}
+	}
+	return path;
+}
+
+vector<int> MultiRingNet::getPath(int start, int end)
+{
+	int nodeNum = connectedNodes.size(), edgeNum = connectedEdges.size();
+	recoveringNodes(start, end);
+	vector<int> path = recoverPath(getOrignalPath(start, end));
+	while (connectedNodes.size() > nodeNum)
+		connectedNodes.pop_back();
+	while (connectedEdges.size() > edgeNum)
+		connectedEdges.pop_back();
+	return path;
 }
 
 void MultiRingNet::print()
 {
-	cout << graph.size() << endl;
-	for (int i = 0; i < ringNum; ++i)
-		cout << rings[i].size() << endl;
-	cout << connectedNodes.size() << endl;
-	cout << connectedEdges.size() << endl;
+	vector<int> ans = getPath(20, 50);
+	cout << ans.size() << endl << endl;
+	for (int i = 0; i < ans.size(); ++i)
+		cout << ans[i] << endl;
 }
 
-void MultiRingNet::showGraphContent() {
-    for (auto vec : this->graph) {
-        cout << vec.size() << ' ';
-    }
-}
-
-vector<vector<int> > MultiRingNet::getGraphNeighbourTable() {
-    return this->graph;
-} 
