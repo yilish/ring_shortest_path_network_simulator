@@ -39,6 +39,9 @@ public:
 	vector<pair<int, int>> getOrignalPath(int start, int end);
 	vector<int> recoverPath(vector<pair<int, int>> orignalPath);
 	vector<int> getPath(int start, int end);
+    vector<vector<int>> getGraph() {
+        return this->graph;
+    }
 	void print();
 private:
 	vector<vector<int>> graph;
@@ -58,20 +61,24 @@ int main(int argc, char* argv[]){
 
     bool verbose = true;
 
-    uint32_t numNodes = 6;
-    MultiRingNet test(5, 5, 2);
+    // uint32_t numNodes = 6;
+    
+    MultiRingNet test(5, 15, 2);
     test.createGraph();
     
     test.preprocessing();
 	// test.print();   
-    // test.showGraphContent();
     //命令行对象
-
+    auto adjTable = test.getGraph();
+    auto path = test.getPath(0, test.getGraph().size() - 1);
+    for (auto it: path) {
+        cout << it << " ";
+    }
     CommandLine cmd;   
     cmd.Usage("Hello world!");
     cmd.Parse(argc,argv);
-
-
+    auto numNodes = adjTable.size();
+    // cout << numNodes << endl;
     if(verbose){
 
         LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
@@ -97,12 +104,12 @@ int main(int argc, char* argv[]){
     nodes.Create(numNodes);
 
     // 生成一个NodeContainer;
-    vector<vector<int> > neighbour;
-    neighbour.push_back({1});
-    neighbour.push_back({2, 3});
-    neighbour.push_back({4});
-    neighbour.push_back({4});
-    neighbour.push_back({5});
+    vector<vector<int> > neighbour = adjTable;
+    // neighbour.push_back({1});
+    // neighbour.push_back({2, 3});
+    // neighbour.push_back({4});
+    // neighbour.push_back({4});
+    // neighbour.push_back({5});
     //  = {{1}, {2, 3}, {4}, {4}, {5}};
     
     vector<NodeContainer> nodeContainers;
@@ -112,7 +119,7 @@ int main(int argc, char* argv[]){
         for (int j = 0; j < neighbour[i].size(); j++) {
             nodeContainers.push_back(NodeContainer(nodes.Get(i), nodes.Get(neighbour[i][j])));
             edge2NodeIdx[{i, neighbour[i][j]}] = nodeContainers.size() - 1;
-            cout << i << ' ' << neighbour[i][j] << '\n';
+            // cout << i << ' ' << neighbour[i][j] << '\n';
         }
     }
 
@@ -182,7 +189,7 @@ int main(int argc, char* argv[]){
     auto subNetMask = "255.255.255.0";
     vector<Ipv4InterfaceContainer> interfaceContainers;
     for (int i = 0; i < edges.size(); i++) {
-        string ipAddress = "10.1." + to_string(i) + ".0";
+        string ipAddress = "10.1." + to_string(i % 256) + "." + to_string(i / 256);
         ipv4.SetBase(ipAddress.c_str(), subNetMask);
         auto interfaceContainer = ipv4.Assign(edges[i]);
         interfaceContainers.push_back(interfaceContainer);
@@ -215,7 +222,6 @@ int main(int argc, char* argv[]){
  
 
     
-    vector<int> path = {0, 1, 2, 4, 5};
     //配置应用层
     uint16_t port = 9;
     UdpEchoServerHelper echoServer (port);
@@ -662,8 +668,8 @@ vector<int> MultiRingNet::recoverPath(vector<pair<int, int>> orignalPath)
 		{
 			int len = start - end;
 			if (len < ringNodeNum - len)
-				for (int i = start; i > end; --i)
-					path.push_back(rings[r][i]);
+				for (int i = start; i > end; --i){
+					path.push_back(rings[r][i]);}
 			else
 			{
 				for (int i = start; i < ringNodeNum; ++i)
@@ -673,6 +679,7 @@ vector<int> MultiRingNet::recoverPath(vector<pair<int, int>> orignalPath)
 			}
 		}
 	}
+    path.push_back(orignalPath.back().first);
 	return path;
 }
 
