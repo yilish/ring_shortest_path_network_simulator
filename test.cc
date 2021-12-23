@@ -12,11 +12,6 @@ using namespace std;
 using namespace ns3;
 
 
-
-
-
-
-
 NS_LOG_COMPONENT_DEFINE("TestExample");
 
 class MultiRingNet
@@ -224,10 +219,7 @@ int main(int argc, char* argv[]){
     internet.Install(nodes);
 
     //配置点到点连接
-
-
     PointToPointHelper p2p;
-
     p2p.SetDeviceAttribute("DataRate",StringValue("1Mbps"));//网卡最大速率
     p2p.SetChannelAttribute("Delay",StringValue("2ms"));
 
