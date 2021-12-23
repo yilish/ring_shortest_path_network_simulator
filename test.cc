@@ -144,7 +144,6 @@ int main(int argc, char* argv[]){
 	cout << endl;
 	NS_LOG_UNCOND("Dijkstra algo time:");
 	NS_LOG_UNCOND(clock() - t);
-    // auto path = test.dijkstra(0, test.getGraph().size() - 1);
    
     cout << endl;
     auto numNodes = adjTable.size();
@@ -265,7 +264,7 @@ int main(int argc, char* argv[]){
 
     uint16_t port = 9;
 
-    UdpEchoServerHelper echoServer (port);
+    UdpServerHelper echoServer (port);
 
     ApplicationContainer serverApps = echoServer.Install(nodes.Get(path[1]));
     for (int i = 2; i < int(path.size()); i++) {
@@ -276,12 +275,12 @@ int main(int argc, char* argv[]){
 
     serverApps.Stop(Seconds(path.size()));
 
-    vector<UdpEchoClientHelper> echoClients;
+    vector<UdpClientHelper> echoClients;
 
     for (int i = 0; i < int(path.size()) - 1; i++) {
 
         auto nodeIdx = edge2NodeIdx[{path[i], path[i + 1]}];
-        auto echoClient = UdpEchoClientHelper( interfaceContainers[nodeIdx].GetAddress(1), port );
+        auto echoClient = UdpClientHelper( interfaceContainers[nodeIdx].GetAddress(1), port );
         echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
         echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
         echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
