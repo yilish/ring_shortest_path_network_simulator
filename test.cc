@@ -1,35 +1,14 @@
 #include "ns3/core-module.h"
-
-
-
 #include "ns3/network-module.h"
-
-
-
 #include "ns3/internet-module.h"
-
-
-
 #include "ns3/point-to-point-module.h"
-
-
-
 #include "ns3/applications-module.h"
-
-
-
 #include "ns3/netanim-module.h"
 
 // #include "../rawAlgos/MultiRingNet.h"
-
 #include <vector>
-
 #include <list>
-
 using namespace std;
-
-
-
 using namespace ns3;
 
 
@@ -44,7 +23,55 @@ class MultiRingNet
 {
 public:
 	MultiRingNet(int r, int rn, int cn): ringNum(r), ringNodeNum(rn), connectedNodeNum(cn) { }
-	vector<int> dijkstra();
+	vector<int> dijkstra(int start, int end) {
+        vector<int> dis(graph.size());
+        vector<int> parent(graph.size());
+        dis[start] = 0;
+        for(int i = 0; i < int(graph.size()); i++) {
+            if (i != start) {
+                dis[i] = 2e9;
+                parent[i] = -1;
+            }
+        }
+        
+        vector<int> visited(graph.size(), 0);
+        priority_queue<pair<int, int>> q;
+        q.push({dis[start], start});
+        while (q.size()) {
+            // NS_LOG_UNCOND(q.top());
+
+            auto minNode = q.top();
+            q.pop();
+
+            int u = minNode.second;
+            if (visited[u]) {
+                continue;
+            }
+            visited[u] = true;
+            for (auto v : graph[u]) {
+            
+                if (v != u && !visited[v] &&  dis[v] > dis[u] + 1) {
+                    dis[v] = dis[u] + 1;
+                    parent[v] = u;
+                    // if (! visited[v]) {
+                    q.push({dis[v], v});
+                    // }
+                }
+                
+            }
+        }
+        vector<int> res;
+        int tmp = end;
+        // cout << start ;
+        // 
+        while (tmp != start) {
+            res.push_back(tmp);
+            tmp = parent[tmp];
+        }
+        res.push_back(start);
+        reverse(res.begin(), res.end());
+        return res;
+    };
 	void createNet();
 	void createGraph();
 	void createRing(int& nodeNum, list<pair<int, int>>& bridgeNodes, list<pair<int, int>>& sharedNodes, int bridgeNum = -1);
@@ -64,6 +91,8 @@ public:
     vector<vector<int>> getGraph() {
         return this->graph;
     }
+
+    
 private:
 	vector<vector<int>> graph;
 	vector<vector<int>> rings;
@@ -98,19 +127,31 @@ int main(int argc, char* argv[]){
     cmd.Parse(argc,argv);
 
     MultiRingNet test(ringNum, ringNodeNum, connectedNodeNum);
-    cout << ringNum << ringNodeNum << connectedNodeNum;
     test.createGraph();
 
     
 
     test.preprocessing();
 
-	// test.print();   
     //命令行对象
     auto adjTable = test.getGraph();
-    auto path = test.getPath(0, test.getGraph().size() - 1);
-    
-  
+
+    auto t = clock();
+	
+    vector<int> path = test.getPath(0, test.getGraph().size() - 1);
+	
+	cout << endl;
+	NS_LOG_UNCOND("Multi ring algo time:");
+    NS_LOG_UNCOND ( clock() - t);
+	t = clock();
+	auto djkstPath = test.dijkstra(0, test.getGraph().size() - 1);
+	
+	cout << endl;
+	NS_LOG_UNCOND("Dijkstra algo time:");
+	NS_LOG_UNCOND(clock() - t);
+    // auto path = test.dijkstra(0, test.getGraph().size() - 1);
+   
+    cout << endl;
     auto numNodes = adjTable.size();
     // cout << numNodes << endl;
     if(verbose){
@@ -142,7 +183,7 @@ int main(int argc, char* argv[]){
 
 
     nodes.Create(numNodes);
-
+	
 
 
     // 生成一个NodeContainer;
@@ -156,7 +197,9 @@ int main(int argc, char* argv[]){
    //建立拓扑的各边节点组合，n1n2n3n4构成环
 
     map<vector<int>, int> edge2NodeIdx;
-
+	// for (int i = 0; i < numNodes; i++) {
+	// 	nodes.Get(i).SetConstantPosition();
+	// }
     for (int i = 0; i < int(neighbour.size()); i++) {
 
         for (int j = 0; j < int(neighbour[i].size()); j++) {
@@ -168,14 +211,8 @@ int main(int argc, char* argv[]){
         }
 
     }
-
-
-
     
 
-
-
-  
 
     //为所有节点安装协议栈
 
@@ -184,25 +221,15 @@ int main(int argc, char* argv[]){
     InternetStackHelper internet;
 
     internet.SetIpv6StackInstall(false);
-
     internet.Install(nodes);
-
 
     //配置点到点连接
 
 
     PointToPointHelper p2p;
 
-
-
     p2p.SetDeviceAttribute("DataRate",StringValue("1Mbps"));//网卡最大速率
-
-
-
     p2p.SetChannelAttribute("Delay",StringValue("2ms"));
-
-
-
 
     //为链路安装点到点连接
 
@@ -229,7 +256,10 @@ int main(int argc, char* argv[]){
 
     vector<Ipv4InterfaceContainer> interfaceContainers;
     for (int i = 0; i < int(edges.size()); i++) {
-        string ipAddress = "10.1." + to_string(i % 256) + "." + to_string(i / 256);
+		string ipAddress;
+		
+		ipAddress = "10." + to_string((i % (256 * 256)) / 256) + "." + to_string((i % (256 * 256)) % 256) + ".0"  ;
+		// cout << ipAddress << endl;
         ipv4.SetBase(ipAddress.c_str(), subNetMask);
 
         auto interfaceContainer = ipv4.Assign(edges[i]);
@@ -275,7 +305,7 @@ int main(int argc, char* argv[]){
 
 
     AnimationInterface anim ("xml/test.xml");
-
+	// anim.SetConstantPosition
     Simulator::Run();
 
     Simulator::Destroy();
